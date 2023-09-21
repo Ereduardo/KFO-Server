@@ -24,7 +24,7 @@ import math
 import os
 from heapq import heappop, heappush
 
-
+from server.commands.character import ReadFile, getChar #Sayo estuvo aqui
 from server import database
 from server.constants import TargetType, encode_ao_packet, contains_URL
 from server.exceptions import ClientError, AreaError, ServerError
@@ -1331,6 +1331,10 @@ class ClientManager:
                     info += f" ({c.ipid})"
                 if c.name != "" and (self.is_mod or self in area.owners):
                     info += f": {c.name}"
+                xx,yy,data = ReadFile(c,f'storage/character_data/URLs.txt')
+                char = getChar(data,c.char_name)    
+                info +=f': {char}' 
+                
             return info
 
         def send_areas_clients(self, mods=False, afk_check=False):

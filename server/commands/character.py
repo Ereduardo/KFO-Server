@@ -9,6 +9,7 @@ from server.exceptions import ClientError, ServerError, ArgumentError, AreaError
 from . import mod_only
 
 __all__ = [
+    "ooc_cmd_urldownload_set",
     "ooc_cmd_switch",
     "ooc_cmd_pos",
     "ooc_cmd_pair",
@@ -952,6 +953,103 @@ def ooc_cmd_chardesc_clear(client, arg):
         "chardesc.clear", client, client.area
     )
 
+
+def FileCheck(client,path):
+    try:
+        open(f'{path}', "r", encoding="utf-8")
+        #client.send_ooc("Archivo encontrado.")
+        return 0
+    except IOError:
+        client.send_ooc("Error: Archivo no existe. Creando...")
+        return CreateFile(client,path)
+        
+
+def CreateFile(client,path):
+    try:
+        open(f'{path}', 'x', encoding="utf-8")
+        client.send_ooc("Archivo creado exitosamente")
+        return
+    except IOError:
+        client.send_ooc("Error creando archivo")
+        return
+
+def ReadFile(client,path):
+    FileCheck(client,path)
+    with open(f'{path}', 'r', encoding="utf-8") as f:
+        # Read the contents of the file into a list 
+        lines = f.readlines() 
+        # Create an empty dictionary 
+        data = {} 
+        # Loop through the list of lines 
+        for line in lines:
+            
+            # Split the line into key-value pairs 
+            key, value = line.strip().split(':') 
+            key = "".join(letter for letter in key if letter.isalnum())
+            #value = "".join(letter for letter in value if letter.isalnum())  # Lo comenté porque le quitaba los puntos a los links, lol
+            # Store the key-value pairs in the dictionary 
+            data[key] = value 
+        # Todo dentro pal diccionaro Data
+             
+    f.close()
+    return (client,path,data)
+
+def getChar(data,charname):
+    charname = "".join(letter for letter in charname if letter.isalnum())
+    char = data.get(charname)
+    if char==None:
+        return 'No tiene link de descarga'
+    return char
+
+def WriteFile(client,path,charname,arg):
+
+    FileCheck(client,path)       #Metodo para verificar y/o crear .txt para las URL
+    client,path,data = ReadFile(client,path)
+    client.send_ooc(f'{data} esto habra funcionado?')
+    charname = "".join(letter for letter in charname if letter.isalnum()) #PORQUE SE DAN DE GRACIOSO Y PONEN TILDES EN CHARNAMES
+    #for i in bad_chars:
+       # arg = arg.replace(i, '')
+                
+    data.update({charname: arg[0]})
+    
+    with open(f'{path}', 'w', encoding="utf-8") as f:    
+        for key, value in data.items(): 
+            f.write(f'%s:%s\n' % (key, value))
+    #client.send_ooc(data) # Check para ver el dictionario in game
+    link = data.get(charname)
+    client.send_ooc(f'El link de {charname} ahora es: {link}') #Check para ver como quedó el link del char
+ 
+    f.close()
+
+def ooc_cmd_urldownload_set(client,arg):
+    """
+    Sets a download link for your character files, or clears it if not given an argument.
+    - Español:
+    Coloca el link de descarga para el personaje que estes usando. O dejalo vacio para quitarlo.
+    Usage: /urldownload_set <URL>    
+    """
+    args = arg.split(" ")
+    if (len(args) < 1 or len(args) > 1 or arg == ""):
+        raise ArgumentError(
+            "Coloca una URL válida. Comando: /urldownload_set <URL>")
+    charname = client.char_name
+    client.send_ooc(f'Personaje a setear url download: {charname}')
+    #client.send_ooc(args)
+    charname = "".join(charname.split())
+    #target = client.area.area_manager.get_char_id_by_name(charname)
+    #client.area.area_manager.set_character_data(target, "URL", args)
+    #client.send_ooc(client.area.area_manager.get_character_data(target, "URL", []))
+    
+    #if arg != "":
+    #path_data = "storage/character_data/"
+    filename = 'URLs.txt'
+    path = f'storage/character_data/{filename}'
+    #f'storage/character_data/URLs.txt'
+    WriteFile(client,path,charname,args)    
+            
+    
+                
+    
 
 @mod_only(hub_owners=True)
 def ooc_cmd_chardesc_set(client, arg):
